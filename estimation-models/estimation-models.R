@@ -1,59 +1,51 @@
 # load packages
 suppressPackageStartupMessages({
-  library("qiime2R") 
   library("phyloseq")
   library("tidyverse")
-  library("ggrepel")
-  library("RColorBrewer")
   library("ggpubr")
-  library("vegan")
-  library("ranacapa")
   library("caret")
   library("knitr")
-  library("doParallel")
   library("mlbench")
-  library("randomForestExplainer")
   library("ranger")
-  library("microbiome")
-  library("microViz")
-  library("tidymodels")
-  library("indicspecies")
   library("pheatmap")
-  library("ggplotify")
   library("patchwork")
   library("ggplotify")
   library("pheatmap")
   
 })
 
+# set plotting theme
 theme_set(theme_bw(14))
-
+# load phyloseq object
 ps1 <- readRDS("ps1.rds")
 
 ##---------------------------------------------------------------------------
-# estimation models
+# model with entire sample and only ASV as predictors
+# extract data from phyloseq object
 set.seed(1390)
 dataMatrix <-
   data.frame(PMI = sample_data(ps1)$PMI,
              snow_depth = sample_data(ps1)$snow_depth,
              t(otu_table(ps1)))
 
+# create partition index
 set.seed(1390)
 trainIndex <- createDataPartition(dataMatrix$PMI,
                                   p = 0.7,
                                   list = FALSE,
                                   times = 1)
 
+# data partition
 set.seed(1390)
 dataMatrixTrain <- dataMatrix[trainIndex,]
 dataMatrixTest <- dataMatrix[-trainIndex,]
 
-n_features <- 1390
-
+# drop unwanted viariables
 drop <- "snow_depth"
 dataMatrixTrain = dataMatrixTrain[,!(names(dataMatrixTrain) %in% drop)]
 dataMatrixTest = dataMatrixTest[,!(names(dataMatrixTest) %in% drop)]
 
+# fit initial ranger model 
 set.seed(1390)
 rf <- ranger(
   PMI ~ .,
@@ -65,15 +57,15 @@ rf <- ranger(
 # get OOB RMSE
 (default_rmse <- sqrt(rf$prediction.error))
 
-# create hyperparameter grid
-hyper_grid <- expand.grid(
-  num.trees = floor(n_features / c(10, 20, 30, 40, 50)),
-  mtry = floor(n_features * c(.05, .15, .25, .333, .4)),
-  min.node.size = c(1, 3, 5, 10),
-  replace = c(TRUE, FALSE),
-  sample.fraction = c(.5, .6, .7, .8, 1),
-  rmse = NA
-)
+# # create hyperparameter grid
+# hyper_grid <- expand.grid(
+#   num.trees = floor(n_features / c(10, 20, 30, 40, 50)),
+#   mtry = floor(n_features * c(.05, .15, .25, .333, .4)),
+#   min.node.size = c(1, 3, 5, 10),
+#   replace = c(TRUE, FALSE),
+#   sample.fraction = c(.5, .6, .7, .8, 1),
+#   rmse = NA
+# )
 
 # set.seed(1390)
 # #execute full cartesian grid search
@@ -107,6 +99,7 @@ hyper_grid <- expand.grid(
 # 4       417 1389             3   FALSE             0.7 2.797370  3.275263
 # 5       417 1389             1   FALSE             0.8 2.801655  3.127091
 
+# build final model 
 set.seed(1390)
 rf_reg <- ranger(
   PMI ~ .,
@@ -118,6 +111,7 @@ rf_reg <- ranger(
   importance = "permutation"
 )
 
+# model results
 rf_reg
 
 # error in train set
@@ -132,11 +126,11 @@ Metrics::mae(dataMatrixTest$PMI,
 # Make predictions
 predictions_train <- predict(rf_reg, dataMatrixTrain)$predictions
 predictions_test <- predict(rf_reg, dataMatrixTest)$predictions
-
-train_prediction <-
-  data.frame(predictions_train, dataMatrixTrain$PMI)
+# create prediction dataframe
+train_prediction <- data.frame(predictions_train, dataMatrixTrain$PMI)
 test_prediction <- data.frame(predictions_test, dataMatrixTest$PMI)
 
+# plot model
 RF_tot <- ggplot() +
   geom_point(
     data = train_prediction,
@@ -172,19 +166,22 @@ imp_tot <- vip::vip(rf_reg, include_type = TRUE, scale=TRUE,
                     geom = "point", horizontal = TRUE, 
                     aesthetics = list(color = "#287D8EFF", shape = 16, size = 4)) +
   theme_light(16) +ggtitle("VIP") +
-  labs(x = "Predictors", y = "Importance scores (%)") +
   labs(x = "Predictors", y = "Importance scores(%)",
        subtitle = "Total sample")  
 
+# save plotted VIP
 r <- rownames(tax_table(ps1)) %in% imp_tot$data$Variable
 tax_table(ps1)[r,] %>%
   write.csv("vip.csv")
 
 ##---------------------------------------------------------------------------
-# internal
+# model including only swabs obtained from internal nose cavity and ASV as
+# predictors
+# subset internal sampling
 ps1_int <-
   subset_samples(ps1, location == "Interior")
 
+# select target variables
 dataMatrix_int <-
   data.frame(
     PMI = sample_data(ps1_int)$PMI,
@@ -192,20 +189,24 @@ dataMatrix_int <-
     t(otu_table(ps1_int))
   )
 
+# set partition index
 set.seed(1390)
 trainIndex <- createDataPartition(dataMatrix_int$PMI,
                                   p = 0.7,
                                   list = FALSE,
                                   times = 1)
 
+# perform splitting
 set.seed(1390)
 dataMatrixTrain_int <- dataMatrix_int[trainIndex, ]
 dataMatrixTest_int <- dataMatrix_int[-trainIndex, ]
 
+# drop variables not of interest
 drop <- "snow_depth"
 dataMatrixTrain_int = dataMatrixTrain_int[,!(names(dataMatrixTrain_int) %in% drop)]
 dataMatrixTest_int = dataMatrixTest_int[,!(names(dataMatrixTest_int) %in% drop)]
 
+# fit initial model 
 set.seed(1390)
 rf_int <- ranger(
   PMI ~ .,
@@ -255,7 +256,7 @@ rf_int <- ranger(
 # 4 2.639843  2.528144
 # 5 2.644397  2.370654
 
-# feature selection method
+# fit final model
 set.seed(1390)
 rf_reg_int <- ranger(
   PMI ~ .,
@@ -267,6 +268,7 @@ rf_reg_int <- ranger(
   importance = "permutation"
 )
 
+# model results
 rf_reg_int
 
 # error in train set
@@ -283,12 +285,13 @@ predictions_train_int <-
   predict(rf_reg_int, dataMatrixTrain_int)$predictions
 predictions_test_int <-
   predict(rf_reg_int, dataMatrixTest_int)$predictions
-
+# save prediction in dataframe
 train_prediction_int <-
   data.frame(predictions_train_int, dataMatrixTrain_int$PMI)
 test_prediction_int <-
   data.frame(predictions_test_int, dataMatrixTest_int$PMI)
 
+# plot model
 RF_int <- ggplot() +
   geom_point(
     data = train_prediction_int,
@@ -328,16 +331,19 @@ imp_int <- vip::vip(rf_reg_int, include_type = TRUE, scale=TRUE,
   labs(x = "Predictors", y = "Importance scores(%)",
        subtitle = "Internal sample")  
 
-
+# save plotted VIP
 r <- rownames(tax_table(ps1_int)) %in% imp_int$data$Variable
 tax_table(ps1_int)[r,] %>%
   write.csv("vip_int.csv")
 
 ##---------------------------------------------------------------------------
-# external
+# model including only swabs obtained from external nose cavity and ASV as
+# predictors
+# subset external sample
 ps1_ext <-
   subset_samples(ps1, location == "Exterior")
 
+# select target variables
 dataMatrix_ext <-
   data.frame(
     PMI = sample_data(ps1_ext)$PMI,
@@ -345,20 +351,24 @@ dataMatrix_ext <-
     t(otu_table(ps1_ext))
   )
 
+# set partition index
 set.seed(1390)
 trainIndex <- createDataPartition(dataMatrix_ext$PMI,
                                   p = 0.7,
                                   list = FALSE,
                                   times = 1)
 
+# perform splitting
 set.seed(1390)
 dataMatrixTrain_ext <- dataMatrix_ext[trainIndex, ]
 dataMatrixTest_ext <- dataMatrix_ext[-trainIndex, ]
 
+# drop variables not of interest
 drop <- "snow_depth"
 dataMatrixTrain_ext = dataMatrixTrain_ext[,!(names(dataMatrixTrain_ext) %in% drop)]
 dataMatrixTest_ext = dataMatrixTest_ext[,!(names(dataMatrixTest_ext) %in% drop)]
 
+# fit initial model 
 set.seed(1390)
 rf_ext <- ranger(
   PMI ~ .,
@@ -403,7 +413,7 @@ rf_ext <- ranger(
 # 4       208  626             1   FALSE             0.8 3.178509  4.166107
 # 5       104 1389             1   FALSE             0.8 3.191688  3.710424
 
-# feature selection method
+# fit final model
 set.seed(1390)
 rf_reg_ext <- ranger(
   PMI ~ .,
@@ -415,12 +425,13 @@ rf_reg_ext <- ranger(
   importance = "permutation"
 )
 
+# model results
 rf_reg_ext
 
 # Make predictions
 predictions_train_ext <- predict(rf_reg_ext, dataMatrixTrain_ext)$predictions
 predictions_test_ext <- predict(rf_reg_ext, dataMatrixTest_ext)$predictions
-
+# save prediction in dataframe
 train_prediction_ext <- data.frame(predictions_train_ext, dataMatrixTrain_ext$PMI)
 test_prediction_ext <- data.frame(predictions_test_ext, dataMatrixTest_ext$PMI)
 
@@ -431,6 +442,7 @@ Metrics::mae(dataMatrixTrain_ext$PMI, rf_reg_ext$predictions)
 Metrics::rmse(dataMatrixTest_ext$PMI, predict(rf_reg_ext, dataMatrixTest_ext)$predictions)
 Metrics::mae(dataMatrixTest_ext$PMI, predict(rf_reg_ext, dataMatrixTest_ext)$predictions)
 
+# plot model
 RF_ext <- ggplot() +
   geom_point(
     data = train_prediction_ext,
@@ -470,29 +482,35 @@ imp_ext <- vip::vip(rf_reg_ext, include_type = TRUE, scale=TRUE,
   labs(x = "Predictors", y = "Importance scores(%)",
        subtitle = "External sample") 
 
+# save plotted VIP
 r <- rownames(tax_table(ps1_ext)) %in% imp_ext$data$Variable
 tax_table(ps1_ext)[r,] %>% 
   write.csv("vip_ext.csv")
 
 #-------------------------------------------------------------------------------
-# Entire sample with temperature and snow coverage
+# model including entire sample with temperature and snow coverage
 set.seed(1390)
+
+# select target variables
 df <-
   data.frame(PMI = sample_data(ps1)$PMI,
              snow_depth = sample_data(ps1)$snow_depth,
              Temp = sample_data(ps1)$T,
              t(otu_table(ps1)))
 
+# set partition index
 set.seed(1390)
 trainIndex <- createDataPartition(df$PMI,
                                   p = 0.7,
                                   list = FALSE,
                                   times = 1)
 
+# perform splitting
 set.seed(1390)
 dfTrain <- df[trainIndex, ]
 dfTest <- df[-trainIndex, ]
 
+# fit initial model 
 set.seed(1390)
 rf <- ranger(
   PMI ~ .,
@@ -546,7 +564,7 @@ rf <- ranger(
 # 4       139 1669             3   FALSE             0.8 1.666822  9.472911
 # 5       417 1669             1   FALSE             0.8 1.670299  9.28409
 
-# feature selection method
+# fit final model
 set.seed(1390)
 rf_reg <- ranger(
   PMI ~ .,
@@ -558,9 +576,8 @@ rf_reg <- ranger(
   importance = "permutation"
 )
 
+# model results
 rf_reg
-
-(default_rmse_reg <- sqrt(rf_reg$prediction.error))
 
 # error in train set
 Metrics::rmse(dfTrain$PMI, rf_reg$predictions)
@@ -572,10 +589,11 @@ Metrics::mae(dfTest$PMI, predict(rf_reg, dfTest)$predictions)
 # Make predictions
 predictions_train <- predict(rf_reg, dfTrain)$predictions
 predictions_test <- predict(rf_reg, dfTest)$predictions
-
+# save prediction in dataframe
 train_prediction <- data.frame(predictions_train, dfTrain$PMI)
 test_prediction <- data.frame(predictions_test, dfTest$PMI)
 
+#  plot model
 RF_tot_complex <- ggplot() +
   geom_point(
     data = train_prediction,
@@ -613,15 +631,19 @@ imp_complex <- vip::vip(rf_reg, include_type = TRUE, scale=TRUE,
   labs(x = "Predictors", y = "Importance scores(%)",
        subtitle = "Internal complex") 
 
+# save plotted VIP
 r <- rownames(tax_table(ps1_int)) %in% imp_complex$data$Variable
 tax_table(ps1_int)[r,] %>% 
   write.csv("vip_complex.csv")
 
 ##---------------------------------------------------------------------------
-# internal
+# model including only swabs obtained from internal nose cavity, ASV, 
+# temperature, and snow coverage as predictors
+# subset internal sampling
 ps1_int <-
   subset_samples(ps1, location == "Interior")
 
+# select target variables
 df_int <-
   data.frame(
     PMI = sample_data(ps1_int)$PMI,
@@ -630,16 +652,19 @@ df_int <-
     t(otu_table(ps1_int))
   )
 
+# set partition index
 set.seed(1390)
 trainIndex <- createDataPartition(df_int$PMI,
                                   p = 0.7,
                                   list = FALSE,
                                   times = 1)
 
+# perform splitting
 set.seed(1390)
 dfTrain_int <- df_int[trainIndex,]
 dfTest_int <- df_int[-trainIndex,]
 
+# fit initial model 
 set.seed(1390)
 rf_int <- ranger(
   PMI ~ .,
@@ -683,7 +708,7 @@ rf_int <- ranger(
 # 4       208 1389             3   FALSE             0.8 2.022049  4.368364
 # 5       208 1669             3   FALSE             0.8 2.024367  4.242486
 
-# feature selection method
+# fit initial model 
 set.seed(1390)
 rf_reg_int <- ranger(
   PMI ~ .,
@@ -695,6 +720,7 @@ rf_reg_int <- ranger(
   importance = "permutation"
 )
 
+# model results
 rf_reg_int
 
 # error in train set
@@ -707,10 +733,11 @@ Metrics::mae(dfTest_int$PMI, predict(rf_reg_int, dfTest_int)$predictions)
 # Make predictions
 predictions_train_int <- predict(rf_reg_int, dfTrain_int)$predictions
 predictions_test_int <- predict(rf_reg_int, dfTest_int)$predictions
-
+# save prediction in dataframe
 train_prediction_int <- data.frame(predictions_train_int, dfTrain_int$PMI)
 test_prediction_int <- data.frame(predictions_test_int, dfTest_int$PMI)
 
+# plot model
 RF_int_complex <- ggplot() +
   geom_point(
     data = train_prediction_int,
@@ -741,24 +768,6 @@ RF_int_complex <- ggplot() +
   xlab("PMI (weeks)") + ylab("Estimated PMI (weeks)")
 
 # normalised variable importance
-imps1_int <- data.frame(
-  var = names(dfTrain_int)[-1],
-  imps1 = rf_reg_int$variable.importance)
-imp.sort_int <- arrange(imps1_int, desc(imps1))
-imp.25_int <- imp.sort_int[imp.sort_int$imps1>1,]
-
-imp_int_complex <- imp.25_int %>%
-  ggplot(aes(imps1, x = reorder(var, imps1))) +
-  geom_point(size = 3, colour = "#440154") +
-  coord_flip() +
-  labs(x = "Predictors", y = "Importance scores") +
-  theme_light(16) +
-  labs(title = "Internal sample", subtitle = "complex")
-
-tax_table(ps1_int)[rownames(tax_table(ps1)) %in% imp.25_int$var] %>%
-  write.csv("vip_int_complex.csv")
-
-# normalised variable importance
 imp_int_complex <- vip::vip(rf_reg_int, include_type = TRUE, scale=TRUE,
                         geom = "point", horizontal = TRUE, 
                         aesthetics = list(color = "#443a83", shape = 16, size = 4)) +
@@ -766,15 +775,19 @@ imp_int_complex <- vip::vip(rf_reg_int, include_type = TRUE, scale=TRUE,
   labs(x = "Predictors", y = "Importance scores(%)",
        subtitle = "Internal complex") 
 
+# save plotted VIP
 r <- rownames(tax_table(ps1_int)) %in% imp_int_complex$data$Variable
 tax_table(ps1_int)[r,] %>% 
   write.csv("vip_int_complex.csv")
 
 ##---------------------------------------------------------------------------
-# external
+# model including only swabs obtained from external nose cavity, ASV, 
+# temperature, and snow coverage as predictors
+# subset external sampling
 ps1_ext <-
   subset_samples(ps1, location == "Exterior")
 
+# select target variables
 df_ext <-
   data.frame(
     PMI = sample_data(ps1_ext)$PMI,
@@ -783,6 +796,7 @@ df_ext <-
     t(otu_table(ps1_ext))
   )
 
+# set partition index
 set.seed(1390)
 trainIndex <- createDataPartition(df_ext$PMI,
                                   p = 0.7,
@@ -790,9 +804,12 @@ trainIndex <- createDataPartition(df_ext$PMI,
                                   times = 1)
 
 
+# perform splitting
+set.seed(1390)
 dfTrain_ext <- df_ext[trainIndex,]
 dfTest_ext <- df_ext[-trainIndex,]
 
+# fit initial model 
 set.seed(1390)
 rf_ext <- ranger(
   PMI ~ .,
@@ -837,7 +854,7 @@ rf_ext <- ranger(
 # 4       104 1389             5   FALSE             0.8 2.231860  13.68990
 # 5       208 1389             1   FALSE             0.8 2.235123  13.51266
 
-# feature selection method
+# fit final model
 set.seed(1390)
 rf_reg_ext <- ranger(
   PMI ~ .,
@@ -849,12 +866,13 @@ rf_reg_ext <- ranger(
   importance = "permutation"
 )
 
+# model results
 rf_reg_ext
 
 # Make predictions
 predictions_train_ext <- predict(rf_reg_ext, dfTrain_ext)$predictions
 predictions_test_ext <- predict(rf_reg_ext, dfTest_ext)$predictions
-
+# save prediction in dataframe
 train_prediction_ext <- data.frame(predictions_train_ext, dfTrain_ext$PMI)
 test_prediction_ext <- data.frame(predictions_test_ext, dfTest_ext$PMI)
 
@@ -865,6 +883,7 @@ Metrics::mae(dfTrain_ext$PMI, rf_reg_ext$predictions)
 Metrics::rmse(dfTest_ext$PMI, predict(rf_reg_ext, dfTest_ext)$predictions)
 Metrics::mae(dfTest_ext$PMI, predict(rf_reg_ext, dfTest_ext)$predictions)
 
+# plot model
 RF_ext_complex <- ggplot() +
   geom_point(
     data = train_prediction_ext,
@@ -895,24 +914,19 @@ RF_ext_complex <- ggplot() +
   xlab("PMI (weeks)") + ylab("Estimated PMI (weeks)")
 
 # normalised variable importance
-imps1_ext <- data.frame(
-  var = names(dfTrain_ext)[-1],
-  imps1 = rf_reg_ext$variable.importance)
-imp.sort_ext <- arrange(imps1_ext, desc(imps1))
-imp.25_ext <- imp.sort_ext[imp.sort_ext$imps1>1,]
+imp_ext_complex <- vip::vip(rf_reg_ext, include_type = TRUE, scale=TRUE,
+                            geom = "point", horizontal = TRUE, 
+                            aesthetics = list(color = "#443a83", shape = 16, size = 4)) +
+  theme_light(16) +ggtitle("VIP") +
+  labs(x = "Predictors", y = "Importance scores(%)",
+       subtitle = "Internal complex") 
 
-imp_ext_complex <- imp.25_ext %>%
-  ggplot(aes(imps1, x = reorder(var, imps1))) +
-  geom_point(size = 3, colour = "#440154") +
-  coord_flip() +
-  labs(x = "Predictors", y = "Importance scores") +
-  theme_light(16) +
-  labs(title = "External sample", subtitle = "complex")
-
-r <- rownames(tax_table(ps1_ext)) %in% imp.25_ext$var
-tax_table(ps1_ext)[r,] %>%
+# save plotted VIP
+r <- rownames(tax_table(ps1_int)) %in% imp_ext_complex$data$Variable
+tax_table(ps1_int)[r,] %>% 
   write.csv("vip_ext_complex.csv")
 
+#-------------------------------------------------------------------------------
 # scatterplot of all predictions
 figure_complex <- ggarrange(
   RF_tot,
@@ -927,6 +941,7 @@ figure_complex <- ggarrange(
   labels = 'auto'
 )
 
+# annotate figre
 annotate_figure(
   figure_complex,
   bottom = text_grob(
@@ -940,10 +955,12 @@ annotate_figure(
   
 )
 
+# save plot
 ggsave("RF_model_overall.pdf", width = 14.98, height = 10.36)
 
 ##---------------------------------------------------------------------------
 # prepare heatmap for VIP across PMI 
+# prepare data
 imps1 <- data.frame(var = names(dfTrain)[-1],
                     imps1 = rf_reg$variable.importance)
 imp.sort <- arrange(imps1, desc(imps1))
@@ -980,17 +997,19 @@ heatmap <-
     main = "RF Complex VIP - Total Sample"
   )
 
-
+# combine plots
 patchwork <- (imp_tot | imp_int | imp_ext) /
   (imp_complex | imp_int_complex | imp_ext_complex) /
   as.ggplot(heatmap) + 
   plot_layout(nrow = 3, widths = c(0.5, 0.5, 0.5), 
               heights = unit(c(4, 4, 9), c('cm', 'cm', 'cm')))
 
+# combine plots
 patchwork +
   plot_annotation(tag_levels = 'A') &
   theme(plot.tag = element_text(size = 14))
 
+# save plot 
 ggsave("imp_overall.pdf", width = 11.34, height = 11.28)
 
 
