@@ -24,22 +24,21 @@ suppressPackageStartupMessages({
   
 })
 
+# set plotting theme
 theme_set(theme_bw(16))
-
+# load processed phyloseq object
 ps1 <- readRDS("ps1.rds")
 
+#-------------------------------------------------------------------------------
 # group taxa by similarity for both location
 phy <- phyloseq::tax_glom(ps1, "Phylum")
 (phyloseq::taxa_names(phy) <- phyloseq::tax_table(phy)[, "Phylum"])
 
 # merge by week
 time_merge <- merge_samples(phy, "week")
-
 ASVnames10 = names(sort(taxa_sums(time_merge), TRUE)[1:10])
 Time10  = prune_taxa(ASVnames10,  phy)
 Time10 = prune_taxa(ASVnames10, time_merge)
-print(Time10)
-
 Time10@sam_data$week <- rownames(Time10@sam_data)
 
 # transform in percentage
@@ -78,6 +77,7 @@ sample_data(trans)$week <-
     )
   )
 
+# bar plot
 bar_phy <- plot_bar(trans, x = "week", fill = "Phylum") +
   geom_bar(aes(fill = Phylum),
            stat = "identity",
@@ -94,9 +94,7 @@ bar_phy <- plot_bar(trans, x = "week", fill = "Phylum") +
     )
   )
 
-bar_phy
-
-# abundance
+# save table results
 phyloseq::psmelt(trans) %>%
   group_by(OTU, week) %>% tally(Abundance) %>%
   write_csv("PMI_phylum.csv")
@@ -107,15 +105,12 @@ cls <- phyloseq::tax_glom(ps1, "Class")
 
 # merge by week
 time_merge <- merge_samples(cls, "week")
-
 ASVnames10 = names(sort(taxa_sums(time_merge), TRUE)[1:10])
 Time10  = prune_taxa(ASVnames10,  cls)
 Time10 = prune_taxa(ASVnames10, time_merge)
-print(Time10)
-
 Time10@sam_data$week <- rownames(Time10@sam_data)
 
-# transformed in percentage
+# transform in percentage
 trans <-
   transform_sample_counts(Time10, function(x)
     (x / sum(x)) * 100)
@@ -151,6 +146,7 @@ sample_data(trans)$week <-
     )
   )
 
+# bar plot
 bar_class <- plot_bar(trans, x = "week", fill = "Class") +
   geom_bar(aes(fill = Class),
            stat = "identity",
@@ -167,29 +163,24 @@ bar_class <- plot_bar(trans, x = "week", fill = "Class") +
     )
   )
 
-bar_class
-
-# abundance
+# save table results
 phyloseq::psmelt(trans) %>%
   group_by(OTU, week) %>% tally(Abundance) %>%
-  write_csv("time_class.csv")
+  write_csv("PMI_class.csv")
 
 #-------------------------------------------------------------------------------
 # group taxa by similarity
-# internal
+# subset internal sampling
 ps1_int <- subset_samples(ps1, location == "Interior")
 
 phy <- phyloseq::tax_glom(ps1_int, "Phylum")
 (phyloseq::taxa_names(phy) <- phyloseq::tax_table(phy)[, "Phylum"])
 
-# Time
+# merge by week
 time_merge <- merge_samples(phy, "week")
-
 ASVnames10 = names(sort(taxa_sums(time_merge), TRUE)[1:10])
 Time10  = prune_taxa(ASVnames10,  phy)
 Time10 = prune_taxa(ASVnames10, time_merge)
-print(Time10)
-
 Time10@sam_data$week <- rownames(Time10@sam_data)
 
 # transform in percentage values
@@ -228,6 +219,7 @@ sample_data(trans)$week <-
     )
   )
 
+# bar plot
 bar_phy_int <- plot_bar(trans, x = "week", fill = "Phylum") +
   geom_bar(aes(fill = Phylum),
            stat = "identity",
@@ -244,27 +236,23 @@ bar_phy_int <- plot_bar(trans, x = "week", fill = "Phylum") +
     )
   )
 
-bar_phy_int
-
-# abundance
+# plot results table
 phyloseq::psmelt(trans) %>%
   group_by(OTU, week) %>% tally(Abundance) %>%
   write_csv("PMI_phylum_int.csv")
 
 #-------------------------------------------------------------------------------
-# group taxa by similarity
+# group taxa by similarity (class)
 cls <- phyloseq::tax_glom(ps1_int, "Class")
 
-# Time
+# merge by week
 Time_merge <- merge_samples(cls, "week")
-
 ASVnames10 = names(sort(taxa_sums(Time_merge), TRUE)[1:10])
 Time10  = prune_taxa(ASVnames10,  cls)
 Time10 = prune_taxa(ASVnames10, Time_merge)
-print(Time10)
-
 Time10@sam_data$week <- rownames(Time10@sam_data)
 
+# transform in percentage
 trans <-
   transform_sample_counts(Time10, function(x)
     (x / sum(x)) * 100)
@@ -300,6 +288,7 @@ sample_data(trans)$week <-
     )
   )
 
+# bar plot
 bar_class_int <- plot_bar(trans, x = "week", fill = "Class") +
   geom_bar(aes(fill = Class),
            stat = "identity",
@@ -316,31 +305,27 @@ bar_class_int <- plot_bar(trans, x = "week", fill = "Class") +
     )
   )
 
-bar_class_int
-
-# abundance
+# save table results
 phyloseq::psmelt(trans) %>%
   group_by(OTU, week) %>% tally(Abundance) %>%
-  write_csv("Time_class_int.csv")
+  write_csv("PMI_class_int.csv")
 
 #-------------------------------------------------------------------------------
 # group taxa by similarity
-# internal
+# subset external sampling
 ps1_ext <- subset_samples(ps1, location == "Exterior")
 
 phy <- phyloseq::tax_glom(ps1_ext, "Phylum")
 (phyloseq::taxa_names(phy) <- phyloseq::tax_table(phy)[, "Phylum"])
 
-# Time
+# merge by week
 Time_merge <- merge_samples(phy, "week")
-
 ASVnames10 = names(sort(taxa_sums(Time_merge), TRUE)[1:10])
 Time10  = prune_taxa(ASVnames10,  phy)
 Time10 = prune_taxa(ASVnames10, Time_merge)
-print(Time10)
-
 Time10@sam_data$week <- rownames(Time10@sam_data)
 
+# tranform in percentage
 trans <-
   transform_sample_counts(Time10, function(x)
     (x / sum(x)) * 100)
@@ -376,6 +361,7 @@ sample_data(trans)$week <-
     )
   )
 
+# bar plot
 bar_phy_ext <- plot_bar(trans, x = "week", fill = "Phylum") +
   geom_bar(aes(fill = Phylum),
            stat = "identity",
@@ -392,27 +378,23 @@ bar_phy_ext <- plot_bar(trans, x = "week", fill = "Phylum") +
     )
   )
 
-bar_phy_ext
-
-# abundance
+# save results table
 phyloseq::psmelt(trans) %>%
   group_by(OTU, week) %>% tally(Abundance) %>%
   write_csv("PMI_phylum_ext.csv")
 
-###############################################################################
-# group taxa by similarity
+#--------------------------------------------------------------------------------
+# group taxa by similarity (class)
 cls <- phyloseq::tax_glom(ps1_ext, "Class")
 
-# Time
+# merge by week
 Time_merge <- merge_samples(cls, "week")
-
 ASVnames10 = names(sort(taxa_sums(Time_merge), TRUE)[1:10])
 Time10  = prune_taxa(ASVnames10,  cls)
 Time10 = prune_taxa(ASVnames10, Time_merge)
-print(Time10)
-
 Time10@sam_data$week <- rownames(Time10@sam_data)
 
+# tranform in percentage
 trans <-
   transform_sample_counts(Time10, function(x)
     (x / sum(x)) * 100)
@@ -448,6 +430,7 @@ sample_data(trans)$week <-
     )
   )
 
+# bar plot
 bar_class_ext <- plot_bar(trans, x = "week", fill = "Class") +
   geom_bar(aes(fill = Class),
            stat = "identity",
@@ -464,13 +447,13 @@ bar_class_ext <- plot_bar(trans, x = "week", fill = "Class") +
     )
   )
 
-bar_class_ext
-
 # abundance
 phyloseq::psmelt(trans) %>%
   group_by(OTU, week) %>% tally(Abundance) %>%
-  write_csv("Time_class_ext.csv")
+  write_csv("PMI_class_ext.csv")
 
+#-------------------------------------------------------------------------------
+# assemble plot
 # A, C, and D reports phyla and the remaining column of plot class
 ggarrange(
   bar_phy,
@@ -484,5 +467,5 @@ ggarrange(
   ncol = 2
 )
 
-ggsave("barplots.pdf", width = 16, height = 16)
+ggsave("bar-plots.pdf", width = 16, height = 16)
 
