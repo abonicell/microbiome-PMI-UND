@@ -24,15 +24,19 @@ library("patchwork")
   
 })
 
+# set plotting theme
 theme_set(theme_bw(14))
 
+# load processed phyloseq object
 ps1 <- readRDS("ps1.rds")
 
+#-------------------------------------------------------------------------------
+# bar plot to evaluate trends according to metadata
 # group taxa by similarity
 phy <- phyloseq::tax_glom(ps1, "Phylum")
 ( phyloseq::taxa_names(phy) <- phyloseq::tax_table(phy)[, "Phylum"] )
 
-# boxplot of taxa (phylum level)
+# boxplot of taxa (phylum level) for sampling location 
 phyloseq::psmelt(phy) %>%
   ggplot(data = ., aes(x = location, y = Abundance)) +
   geom_boxplot(outlier.shape  = NA) +
@@ -49,7 +53,7 @@ phyloseq::psmelt(phy) %>%
 
 ggsave('phylum_box_Location.pdf', width = 11, height = 9)
 
-# boxplot of taxa (phylum level)
+# boxplot of taxa (phylum level) across PMI
 phyloseq::psmelt(phy) %>%
   ggplot(data = ., aes(x = week, y = Abundance)) +
   geom_boxplot(outlier.shape  = NA) +
@@ -66,6 +70,7 @@ phyloseq::psmelt(phy) %>%
 
 ggsave('phylum_box_Time.pdf', width = 20, height = 10)
 
+# boxplot of taxa (phylum level) for the different study individuals
 phyloseq::psmelt(phy) %>%
   ggplot(data = ., aes(x = Pig, y = Abundance)) +
   geom_boxplot(outlier.shape  = NA) +
@@ -84,9 +89,7 @@ phyloseq::psmelt(phy) %>%
 ggsave('phylum_box_pig.pdf', width = 10, height = 9)
 
 #-------------------------------------------------------------------------------
-# calculate alpha diversity - variation within sample
-# both Location combined according to pig
-
+# calculate alpha diversity for study individuals
 my_comparisons <- list( c("P1","P2"),c("P1","P2"),c("P2","P3"))
 
 rich_pig <- plot_richness(
@@ -103,11 +106,9 @@ rich_pig <- plot_richness(
   viridis::scale_fill_viridis(discrete = TRUE) +
   viridis::scale_color_viridis(discrete = TRUE)
 
-rich_pig
-
+# calculate alpha diversity for sampling location
 my_comparisons <- list( c("Internal","External"))
 
-# both Location combined according to Location
 rich_Location <- plot_richness(
   ps1,
   x = "location",
@@ -121,9 +122,7 @@ rich_Location <- plot_richness(
   viridis::scale_fill_viridis(discrete = TRUE) +
   viridis::scale_color_viridis(discrete = TRUE)
 
-rich_Location
-
-# both Location combined according to Location
+# calculate alpha diversity for PMI variation
 rich_Time <- plot_richness(
   ps1,
   x = "week",
@@ -140,46 +139,47 @@ rich_Time <- plot_richness(
   viridis::scale_fill_viridis(discrete = TRUE) +
   viridis::scale_color_viridis(discrete = TRUE)
 
-rich_Time
-
 #------------------------------------------------------------------------------
-# unifrac distance as test - beta div = between group
+# unifrac distance
 unwunifrac_dist = phyloseq::distance(ps1, method = "unifrac", weighted = F)
 ordination = ordinate(ps1, method = "PCoA", distance = unwunifrac_dist)
 
+# plot unifrac distance for study individuals
 uni_pig <- plot_ordination(ps1, ordination, color = "pig")   +
   geom_point(aes(color = `pig`), alpha = 0.5, size = 4)   +
   theme_bw()+
   viridis::scale_fill_viridis(discrete = TRUE) +
   viridis::scale_color_viridis(discrete = TRUE)
 
-uni_pig
-
+# combined plot for alpha and beta diversity for individuals
 ggarrange(rich_pig, uni_pig,
           labels = 'AUTO')
-
+# save plot
 ggsave("pig_eval.pdf", width = 14.10, height = 5.33)
 
+# plot unifrac distance for sampling location
 uni_Location <- plot_ordination(ps1, ordination, color = "location")   +
   geom_point(aes(color = `location`), alpha = 0.5, size = 4)   +
   theme_bw()+
   viridis::scale_fill_viridis(discrete = TRUE) +
   viridis::scale_color_viridis(discrete = TRUE)
-  
-plot_ordination(ps1, ordination, color = "week")   +
+
+# combined plot for alpha and beta diversity across sampling location
+ggarrange(rich_Location, uni_Location,
+          labels = 'AUTO')
+# save plot
+ggsave("Location_eval.pdf", width = 14.10, height = 5.33)
+
+# plot unifrac distance across PMI  
+uni_Time <- plot_ordination(ps1, ordination, color = "week")   +
   geom_point(aes(color = `week`), alpha = 0.5, size = 4)   +
   theme_bw() +
   viridis::scale_fill_viridis(discrete = TRUE) +
   viridis::scale_color_viridis(discrete = TRUE) -> uni_Time
 
-uni_Time
-
-ggarrange(rich_Location, uni_Location,
-          labels = 'AUTO')
-
-ggsave("Location_eval.pdf", width = 14.10, height = 5.33)
-
+# combined plot for alpha and beta diversity across PMI
 ggarrange(rich_Time, uni_Time,
           labels = 'AUTO')
-
+# save plot
 ggsave("Time_eval.pdf", width = 20.10, height = 5.33)
+
