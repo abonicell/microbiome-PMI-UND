@@ -17,13 +17,13 @@ taxonomy<-qiime2R::read_qza("taxonomy-silva.qza")
 head(taxonomy$data);
 qiime2R::parse_taxonomy(taxonomy$data)
 
-( metadata <- readr::read_tsv("metadata_final.txt") )
+( metadata <- readr::read_tsv("metadata.txt") )
 
 ( physeq<-qiime2R::qza_to_phyloseq(
   features="table-OTU97.qza",
   tree = "rooted-tree.qza",
   taxonomy="taxonomy-silva.qza",
-  metadata = "metadata_final.txt"
+  metadata = "metadata.txt"
 ) )# 4285 taxa
 
 # remove contaminants
