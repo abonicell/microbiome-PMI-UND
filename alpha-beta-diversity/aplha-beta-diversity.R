@@ -4,24 +4,10 @@ library("qiime2R")
 library("phyloseq")
 library("tidyverse")
 library("ggrepel")
-library("RColorBrewer")
 library("ggpubr")
 library("vegan")
 library("ranacapa")
-library("caret")
 library("knitr")
-library("doParallel")
-library("mlbench")
-library("randomForestExplainer")
-library("ranger")
-library("microbiome")
-library("microViz")
-library("tidymodels")
-library("indicspecies")
-library("pheatmap")
-library("ggplotify")
-library("patchwork")
-  
 })
 
 # set plotting theme
@@ -72,7 +58,7 @@ ggsave('phylum_box_Time.pdf', width = 20, height = 10)
 
 # boxplot of taxa (phylum level) for the different study individuals
 phyloseq::psmelt(phy) %>%
-  ggplot(data = ., aes(x = Pig, y = Abundance)) +
+  ggplot(data = ., aes(x = pig, y = Abundance)) +
   geom_boxplot(outlier.shape  = NA) +
   geom_jitter(aes(color = Phylum), height = 0, width = .2) +
   labs(x = "Sampling Location", y = "Abundance\n") +
