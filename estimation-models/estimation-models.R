@@ -19,6 +19,8 @@ theme_set(theme_bw(14))
 # load phyloseq object
 ps1 <- readRDS("ps1.rds")
 
+n_features <- nrow(otu_table(ps1))
+
 ##---------------------------------------------------------------------------
 # model with entire sample and only ASV as predictors
 # extract data from phyloseq object
@@ -50,7 +52,7 @@ set.seed(1390)
 rf <- ranger(
   PMI ~ .,
   data = dataMatrixTrain,
-  mtry = floor(1390),
+  mtry = floor(n_features/3),
   respect.unordered.factors = "order"
 )
 
@@ -620,7 +622,7 @@ RF_tot_complex <- ggplot() +
     linetype = 2,
     se = FALSE
   ) +
-  labs(title = "RF model - Entire sample", subtitle = "MAE = 1.36," ~R^2~"=0.91") +
+  labs(title = "RF model - Entire sample", subtitle = "MAE = 1.36," ~R^2~"= 0.91") +
   xlab("PMI (weeks)") + ylab("Estimated PMI (weeks)")
 
 # normalised variable importance
@@ -910,7 +912,7 @@ RF_ext_complex <- ggplot() +
     linetype = 2,
     se = FALSE
   ) +
-  labs(title = "RF model - External sample", subtitle = "MAE = 1.83," ~R^2~"=0.87") +
+  labs(title = "RF model - External sample", subtitle = "MAE = 1.83," ~R^2~"= 0.87") +
   xlab("PMI (weeks)") + ylab("Estimated PMI (weeks)")
 
 # normalised variable importance
@@ -956,7 +958,7 @@ annotate_figure(
 )
 
 # save plot
-ggsave("RF_model_overall.pdf", width = 14.98, height = 10.36)
+ggsave("figure6.pdf", width = 14.98, height = 10.36)
 
 ##---------------------------------------------------------------------------
 # prepare heatmap for VIP across PMI 
@@ -1010,6 +1012,6 @@ patchwork +
   theme(plot.tag = element_text(size = 14))
 
 # save plot 
-ggsave("imp_overall.pdf", width = 11.34, height = 11.28)
+ggsave("figure7.pdf", width = 11.34, height = 11.28)
 
 

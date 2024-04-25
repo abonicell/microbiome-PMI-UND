@@ -453,5 +453,16 @@ ggarrange(
   ncol = 2
 )
 
-ggsave("bar-plots.pdf", width = 16, height = 16)
+ggsave("supplementary-figure.pdf", width = 16, height = 16)
+
+# Figure 1
+ggarrange(
+  bar_phy,
+  bar_class,
+  labels="AUTO",
+  nrow = 1,
+  ncol = 2
+)
+
+ggsave("figure1.pdf", width = 16, height = 5.5)
 

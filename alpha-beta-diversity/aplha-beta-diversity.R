@@ -37,7 +37,7 @@ phyloseq::psmelt(phy) %>%
   theme(axis.title.x = element_blank(),
         axis.text.x=element_text(angle=45,hjust=1,vjust=1))
 
-ggsave('phylum_box_Location.pdf', width = 11, height = 9)
+# ggsave('phylum_box_Location.pdf', width = 11, height = 9)
 
 # boxplot of taxa (phylum level) across PMI
 phyloseq::psmelt(phy) %>%
@@ -54,7 +54,7 @@ phyloseq::psmelt(phy) %>%
   theme(axis.title.x = element_blank(),
         axis.text.x=element_text(size = rel(0.8),angle=45,hjust=1,vjust=1.1))
 
-ggsave('phylum_box_Time.pdf', width = 20, height = 10)
+# ggsave('phylum_box_Time.pdf', width = 20, height = 10)
 
 # boxplot of taxa (phylum level) for the different study individuals
 phyloseq::psmelt(phy) %>%
@@ -72,7 +72,7 @@ phyloseq::psmelt(phy) %>%
   theme(axis.title.x = element_blank(),
         axis.text.x=element_text(angle=45,hjust=1,vjust=0.9))
 
-ggsave('phylum_box_pig.pdf', width = 10, height = 9)
+# ggsave('phylum_box_pig.pdf', width = 10, height = 9)
 
 #-------------------------------------------------------------------------------
 # calculate alpha diversity for study individuals
@@ -161,7 +161,7 @@ uni_pig <- plot_ordination(ps1, ordination, color = "pig")   +
 ggarrange(rich_pig, uni_pig,
           labels = 'AUTO')
 # save plot
-ggsave("pig_alpha_beta.pdf", width = 14.10, height = 5.33)
+ggsave("figure2.pdf", width = 14.10, height = 5.33)
 
 # plot unifrac distance for sampling location
 uni_Location <- plot_ordination(ps1, ordination, color = "location")   +
@@ -174,7 +174,7 @@ uni_Location <- plot_ordination(ps1, ordination, color = "location")   +
 ggarrange(rich_Location, uni_Location,
           labels = 'AUTO')
 # save plot
-ggsave("location_alpha_beta.pdf", width = 14.10, height = 5.33)
+ggsave("figure3.pdf", width = 14.10, height = 5.33)
 
 # plot unifrac distance across PMI  
 uni_Time <- plot_ordination(ps1, ordination, color = "week")   +
@@ -187,7 +187,7 @@ uni_Time <- plot_ordination(ps1, ordination, color = "week")   +
 ggarrange(rich_Time, uni_Time,
           labels = 'AUTO')
 # save plot
-ggsave("pmi_alpha_beta.pdf", width = 20.10, height = 5.33)
+ggsave("figure4.pdf", width = 20.10, height = 5.33)
 
 # plot unifrac distance across snow depth  
 uni_snow <- plot_ordination(ps1, ordination, color = "snow_depth")   +
@@ -200,5 +200,5 @@ uni_snow <- plot_ordination(ps1, ordination, color = "snow_depth")   +
 ggarrange(rich_snow, uni_snow,
           labels = 'AUTO')
 # save plot
-ggsave("snow_depth_alpha_beta.pdf", width = 20.10, height = 5.33)
+ggsave("figure4.pdf", width = 20.10, height = 5.33)
 
