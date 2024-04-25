@@ -125,6 +125,26 @@ rich_Time <- plot_richness(
   viridis::scale_fill_viridis(discrete = TRUE) +
   viridis::scale_color_viridis(discrete = TRUE)
 
+
+# snow depth as factor
+ps1@sam_data$snow_depth <- factor(ps1@sam_data$snow_depth)
+# calculate alpha diversity for snow depth variation
+rich_snow <- plot_richness(
+  ps1,
+  x = "snow_depth",
+  color = "snow_depth",
+  scales = "free_y",
+  measures = c("Observed", "Shannon")
+) +
+  geom_boxplot() +
+  theme_bw() + theme(axis.text.x = element_text(
+    size = rel(0.8),
+    angle = 45,
+    hjust = 1
+  )) +
+  viridis::scale_fill_viridis(discrete = TRUE) +
+  viridis::scale_color_viridis(discrete = TRUE)
+
 #------------------------------------------------------------------------------
 # unifrac distance
 unwunifrac_dist = phyloseq::distance(ps1, method = "unifrac", weighted = F)
@@ -141,7 +161,7 @@ uni_pig <- plot_ordination(ps1, ordination, color = "pig")   +
 ggarrange(rich_pig, uni_pig,
           labels = 'AUTO')
 # save plot
-ggsave("pig_eval.pdf", width = 14.10, height = 5.33)
+ggsave("pig_alpha_beta.pdf", width = 14.10, height = 5.33)
 
 # plot unifrac distance for sampling location
 uni_Location <- plot_ordination(ps1, ordination, color = "location")   +
@@ -154,18 +174,31 @@ uni_Location <- plot_ordination(ps1, ordination, color = "location")   +
 ggarrange(rich_Location, uni_Location,
           labels = 'AUTO')
 # save plot
-ggsave("Location_eval.pdf", width = 14.10, height = 5.33)
+ggsave("location_alpha_beta.pdf", width = 14.10, height = 5.33)
 
 # plot unifrac distance across PMI  
 uni_Time <- plot_ordination(ps1, ordination, color = "week")   +
   geom_point(aes(color = `week`), alpha = 0.5, size = 4)   +
   theme_bw() +
   viridis::scale_fill_viridis(discrete = TRUE) +
-  viridis::scale_color_viridis(discrete = TRUE) -> uni_Time
+  viridis::scale_color_viridis(discrete = TRUE)
 
 # combined plot for alpha and beta diversity across PMI
 ggarrange(rich_Time, uni_Time,
           labels = 'AUTO')
 # save plot
-ggsave("Time_eval.pdf", width = 20.10, height = 5.33)
+ggsave("pmi_alpha_beta.pdf", width = 20.10, height = 5.33)
+
+# plot unifrac distance across snow depth  
+uni_snow <- plot_ordination(ps1, ordination, color = "snow_depth")   +
+  geom_point(aes(color = `snow_depth`), alpha = 0.5, size = 4)   +
+  theme_bw() +
+  viridis::scale_fill_viridis(discrete = TRUE) +
+  viridis::scale_color_viridis(discrete = TRUE)
+
+# combined plot for alpha and beta diversity across PMI
+ggarrange(rich_snow, uni_snow,
+          labels = 'AUTO')
+# save plot
+ggsave("snow_depth_alpha_beta.pdf", width = 20.10, height = 5.33)
 
