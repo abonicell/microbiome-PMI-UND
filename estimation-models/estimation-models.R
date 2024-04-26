@@ -631,7 +631,7 @@ imp_complex <- vip::vip(rf_reg, include_type = TRUE, scale=TRUE,
                             aesthetics = list(color = "#443a83", shape = 16, size = 4)) +
   theme_light(16) +ggtitle("VIP") +
   labs(x = "Predictors", y = "Importance scores(%)",
-       subtitle = "Internal complex") 
+       subtitle = "Total complex") 
 
 # save plotted VIP
 r <- rownames(tax_table(ps1_int)) %in% imp_complex$data$Variable
