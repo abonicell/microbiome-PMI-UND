@@ -86,8 +86,3 @@ sample_data(ps)$week <-
 ps1 <-microViz::tax_names2rank(ps, colname = "unique")
 taxa_names(ps1) <- paste0("ASV", seq(ntaxa(ps1)))
 
-# save object for further processing in each subforlder for further porcessing
-saveRDS(ps1, file = "/Users/andreabonicelli/Documents/Microbiome/lavina_pigs/microbiome_UND/bar-plots/ps1.rds")
-saveRDS(ps1, file = "/Users/andreabonicelli/Documents/Microbiome/lavina_pigs/microbiome_UND/alpha-beta-diversity/ps1.rds")
-saveRDS(ps1, file = "/Users/andreabonicelli/Documents/Microbiome/lavina_pigs/microbiome_UND/estimation-models/ps1.rds")
-
